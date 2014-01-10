@@ -23,6 +23,9 @@ inline namespace v1 {
     return a < b ? a : b;
   }
 
+  // no_base_class
+  class no_base_class {};
+
   /*! \brief Interface of the RF24 driver provided by maniacbug on GITHUB.
    *
    * Interface of RF24 driver by maniacbug. This is just his interface
@@ -32,8 +35,8 @@ inline namespace v1 {
    * Based on: https://github.com/maniacbug/RF24/blob/master/RF24.h
    * which is Copyright (C) 2011 J. Coliz <maniacbug@ymail.com>
    */
-  template<typename COMM>
-  class NRF24L01
+  template<typename COMM, typename BASE = no_base_class>
+  class NRF24L01 : public BASE
   {
     friend COMM;
 
@@ -170,13 +173,13 @@ inline namespace v1 {
       // Monitor the send
       uint8_t observe_tx;
       uint8_t status;
-      uint32_t sent_at = 0; // millis
+      uint32_t sent_at = m_sys.millisecondsSinceStart();
       const uint32_t timeout = 500; //ms to wait for timeout
       do
       {
         status = read_register(OBSERVE_TX, &observe_tx, 1);
       }
-      while(!(status & ((1 << TX_DS) | (1 << MAX_RT)))); // && (  < timeout ) );
+      while(!(status & ((1 << TX_DS) | (1 << MAX_RT))) && (m_sys.millisecondsSinceStart() - sent_at  < timeout ));
 
       // The part above is what you could recreate with your own interrupt handler,
       // and then call this when you got an interrupt
@@ -212,8 +215,7 @@ inline namespace v1 {
     //! Read the status register to check if data is available for reading
     bool available(void)
     {
-      uint8_t status = get_status();
-      return status & (1 << RX_DR);
+      return available(nullptr);
     }
 
     //! Read available data into buffer at buf (of size len)
@@ -561,7 +563,7 @@ inline namespace v1 {
       write_register(CONFIG, read_register(CONFIG) & ~(1 << PWR_UP));
     }
 
-    bool available(uint8_t& pipe_num)
+    bool available(uint8_t* pipe_num)
     {
       uint8_t status = get_status();
       bool result = (status & (1 << RX_DR));
@@ -569,7 +571,10 @@ inline namespace v1 {
       if (result)
       {
         // If the caller wants the pipe number, include that
-        pipe_num = (status >> RX_P_NO) & 0x07;
+        if (pipe_num != nullptr)
+        {
+          *pipe_num = (status >> RX_P_NO) & 0x07;
+        }
 
         // Clear the status bit
 
@@ -639,6 +644,21 @@ inline namespace v1 {
     bool testCarrier(void)
     {
       return ( read_register(CD) & 1 );
+    }
+
+    bool testRPD(void)
+    {
+      return true;
+    }
+
+    bool isValid(void)
+    {
+      return true;
+    }
+
+    void printDetails(void)
+    {
+      return;
     }
 
   private:

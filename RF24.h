@@ -333,7 +333,7 @@ public:
    *
    * @warning Does nothing if stdout is not defined.  See fdevopen in stdio.h
    */
-  // virtual void printDetails(void) = 0;
+  virtual void printDetails(void) = 0;
 
   /**
    * Enter low-power mode
@@ -359,7 +359,7 @@ public:
    * @param[out] pipe_num Which pipe has the payload available
    * @return True if there is a payload available, false if none is
    */
-  virtual bool available(uint8_t& pipe_num) = 0;
+  virtual bool available(uint8_t* pipe_num) = 0;
 
   /**
    * Non-blocking write to the open writing pipe
@@ -439,7 +439,7 @@ public:
    *
    * @return true if signal => -64dBm, false if not
    */
-  // virtual bool testRPD(void) = 0;
+  virtual bool testRPD(void) = 0;
 
   /**
    * Test whether this is a real radio, or a mock shim for
@@ -448,7 +448,7 @@ public:
    *
    * @return true if this is a legitimate radio 
    */
-  // virtual bool isValid() = 0;
+  virtual bool isValid() = 0;
 
   /**@}*/
 };
