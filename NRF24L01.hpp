@@ -154,22 +154,26 @@ inline namespace v1 {
     //! Blocking write
     auto write(void const * buf, uint8_t const len) -> bool
     {
+      m_comm.clearPendingInterrupt();
       startWrite(buf, len);
 
       // TODO add timeout
-      while(1)
-      {
-        uint8_t status = getStatus();
+      m_comm.waitForInterrupt();
+      uint8_t status = getStatus();
 
-        if (status & RF24_STATUS_TX_DS)
-        {
-          return true;
-        }
-        else if (status & RF24_STATUS_MAX_RT)
-        {
-          return false;
-        }
+      bool ret;
+
+      if (status & RF24_STATUS_TX_DS)
+      {
+        ret = true;
       }
+      else if (status & RF24_STATUS_MAX_RT)
+      {
+        ret = false;
+      }
+
+      clearPendingInterrupts();
+      return ret;
     }
 
 
@@ -210,8 +214,18 @@ inline namespace v1 {
 
     auto setRetransmitDelay(uint16_t delay) -> void
     {
-      // TODO: Implement
-      //static_assert(false, "Unimplemented");
+      uint8_t x = readRegister(RF24_REGISTER_SETUP_RETR);
+      if (delay > 4000)
+      {
+        delay = 4000;
+      }
+      if (delay < 500)
+      {
+        delay = 500;
+      }
+      delay = (delay - 250) / 250;
+      delay = delay << 4;
+      writeRegister(RF24_REGISTER_SETUP_RETR, x | (delay & 0xF0));
     }
 
 
