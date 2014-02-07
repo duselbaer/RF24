@@ -43,6 +43,8 @@ inline namespace v1 {
     {
     }
 
+
+
     auto init() -> void
     {
       //! \todo Give the Interrupt Handler Callback instead
@@ -98,10 +100,37 @@ inline namespace v1 {
       clearPendingInterrupts(RF24_STATUS_RX_DR);
 
       // Set PWR_UP & PRIM_RX
-      setConfig(RF24_CONFIG_PRIM_RX);
+      setConfig(RF24_CONFIG_PRIM_RX | RF24_CONFIG_PWR_UP);
       m_comm.CE_HIGH();
 
       // Now it takes 130us for PLL to settle
+    }
+
+
+
+    //! Sends the R_RX_PAYLOAD command to the device which returns
+    //! the data at the front of the FIFO.
+    //!
+    //! \return the status retrieved by the device
+    auto read(uint8_t* buffer, uint8_t const buffer_size) -> uint8_t
+    {
+      while (!available())
+      {
+        m_comm.waitForInterrupt();
+        m_comm.clearPendingInterrupt();
+      }
+
+      m_comm.CS_LOW();
+
+      auto status = m_comm.SPI_SHIFT(RF24_COMMAND_R_RX_PAYLOAD);
+      m_comm.SPI_TRANSFER_SYNC(buffer, buffer, buffer_size);
+
+      m_comm.CS_HIGH();
+
+      // Clear the interrupt flag
+      clearPendingInterrupts(RF24_STATUS_RX_DR);
+
+      return status;
     }
 
 
@@ -142,11 +171,22 @@ inline namespace v1 {
       // Note that AVR & MSP430 8-bit uC's store this LSB first, and the NRF24L01(+)
       // expects it LSB first too, so we're good.
 
-      writeRegister(RF24_REGISTER_RX_ADDR_P0, reinterpret_cast<const uint8_t*>(&address), 5);
-      writeRegister(RF24_REGISTER_TX_ADDR, reinterpret_cast<const uint8_t*>(&address), 5);
+      writeRegister(
+        static_cast<Rf24Register>(
+          static_cast<uint8_t>(RF24_REGISTER_RX_ADDR_P0) + number)
+          , reinterpret_cast<const uint8_t*>(&address), 5);
+      // writeRegister(RF24_REGISTER_TX_ADDR, reinterpret_cast<const uint8_t*>(&address), 5);
 #else
 #error Not yet implemented for BIG_ENDIAN
 #endif
+
+      uint8_t en_aa = readRegister(RF24_REGISTER_EN_AA);
+      en_aa |= 1;
+      writeRegister(RF24_REGISTER_EN_AA, en_aa);
+
+      uint8_t en_rxaddr = readRegister(RF24_REGISTER_EN_RXADDR);
+      en_rxaddr |= (1 << number);
+      writeRegister(RF24_REGISTER_EN_RXADDR, en_rxaddr);
     }
 
 
@@ -197,8 +237,9 @@ inline namespace v1 {
 
     auto available(uint8_t* pipe = nullptr) -> bool
     {
-      // TODO: Implement correctly
-      return getStatus() & RF24_STATUS_RX_DR;
+      // 0001 is TX-FIFO-STATUS
+      // xxxT is RX-FIFO-STATUS where 111T means RX-FIFO-EMPTY
+      return (getStatus() & 0x0E) < 0x0E;
     }
 
 
