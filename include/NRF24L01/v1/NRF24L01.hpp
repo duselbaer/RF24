@@ -4,10 +4,6 @@
 
 #include <endian.h>
 
-#ifndef _BV
-#define _BV(x) (1 << x)
-#endif
-
 namespace NRF24L01 {
 inline namespace v1 {
 
