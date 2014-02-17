@@ -70,6 +70,16 @@ inline namespace v1 {
 
 
 
+    //! \brief Check if this instance of NRF24L01 has been initialized correctly
+    //!
+    //! \todo Implement if necessary
+    constexpr auto isValid() -> bool
+    {
+      return true;
+    }
+
+
+
     auto powerDown() -> void
     {
       m_comm.CE_LOW();
@@ -100,6 +110,16 @@ inline namespace v1 {
       m_comm.CE_HIGH();
 
       // Now it takes 130us for PLL to settle
+    }
+
+
+
+    //! \brief Stop listening by setting CE to low and flushing RX and TX buffers
+    auto stopListening() -> void
+    {
+      m_comm.CE_LOW();
+      flushTx();
+      flushRx();
     }
 
 
@@ -308,6 +328,14 @@ inline namespace v1 {
 
 
 
+    //! \brief Convenience Function to be compliant to the RF24 interface
+    auto setCRCLength(Rf24_CRC const type) -> void
+    {
+      enableCRC(type);
+    }
+
+
+
     auto disableCRC() -> void
     {
       setConfig(getConfig() & ~RF24_CONFIG_EN_CRC);
@@ -339,6 +367,14 @@ inline namespace v1 {
       rf_setup &= ~(RF24_SPEED_MASK);
       rf_setup |= speed;
       writeRegister(RF24_REGISTER_RF_SETUP, rf_setup);
+    }
+
+
+
+    //! \brief Convenience Function to be compliant to the RF24 interface
+    auto setDataRate(Rf24_Speed const speed) -> void
+    {
+      setSpeed(speed);
     }
 
 
