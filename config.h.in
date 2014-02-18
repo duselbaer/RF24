@@ -1,0 +1,4 @@
+#pragma once
+
+#cmakedefine HAVE_ENDIAN_H 1
+#cmakedefine HAVE_MACHINE_ENDIAN_H 1
