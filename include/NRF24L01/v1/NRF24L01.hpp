@@ -197,7 +197,7 @@ inline namespace v1 {
 #endif
 
       uint8_t en_aa = readRegister(RF24_REGISTER_EN_AA);
-      en_aa |= 1;
+      en_aa |= (1 << number);
       writeRegister(RF24_REGISTER_EN_AA, en_aa);
 
       uint8_t en_rxaddr = readRegister(RF24_REGISTER_EN_RXADDR);
