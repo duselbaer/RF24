@@ -1,12 +1,12 @@
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+# Some Platform Checks first
+INCLUDE (CheckIncludeFiles)
+CHECK_INCLUDE_FILES (endian.h HAVE_ENDIAN_H)
+CHECK_INCLUDE_FILES (machine/endian.h HAVE_MACHINE_ENDIAN_H)
 
-add_library(RF24 STATIC
-  include/NRF24L01/v1/NRF24L01.hpp
-)
+CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/include/NRF24L01/v1/config.h)
+
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 add_library(RF24_MSP430 STATIC
   src/NRF24L01/v1/driver/port2_interrupt.cpp
 )
-
-# No Sources --> set link language manually
-SET_TARGET_PROPERTIES(RF24 PROPERTIES LINKER_LANGUAGE CXX)

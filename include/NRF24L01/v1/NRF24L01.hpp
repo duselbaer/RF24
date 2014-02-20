@@ -1,8 +1,16 @@
 #pragma once
 
+#include "config.h"
+
 #include <stdint.h>
 
-#include <endian.h>
+#ifdef HAVE_ENDIAN_H
+# include <endian.h>
+#elif HAVE_MACHINE_ENDIAN_H
+# include <machine/endian.h>
+#else
+# error Endianess Header Required
+#endif
 
 namespace NRF24L01 {
 inline namespace v1 {
