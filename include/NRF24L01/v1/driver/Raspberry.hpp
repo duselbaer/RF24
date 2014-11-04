@@ -9,9 +9,11 @@ extern "C"
 
 #include <cstdint>
 #include <unistd.h>
+#include <iomanip>
+#include <iostream>
 
 namespace NRF24L01 {
-inline namespace v1
+inline namespace v1 {
 namespace driver {
 
   //! \brief Provides all the hardware specific functions for the NRF24L01 module
@@ -26,8 +28,10 @@ namespace driver {
   template<uint8_t CS = RPI_V2_GPIO_P1_11, uint8_t CE = RPI_V2_GPIO_P1_13, uint8_t INT = RPI_V2_GPIO_P1_15>
   class Raspberry
   {
+    typedef Raspberry<CS, CE, INT> self;
+
   public:
-    void init(NRF24L01<NRF24L01_COMM>* nrf)
+    void init(NRF24L01<self>* nrf)
     {
       if (!bcm2835_init())
       {
@@ -58,6 +62,11 @@ namespace driver {
       CS_HIGH();
     }
 
+    void delay_us(int const us)
+    {
+      usleep(us);
+    }
+
     void delay_ms(int const ms)
     {
       usleep(ms * 1000);
@@ -65,45 +74,51 @@ namespace driver {
 
     inline void CS_LOW()
     {
+      std::cout << "_cs_";
       bcm2835_gpio_write(CS, LOW);
     }
 
     inline void CS_HIGH()
     {
+      std::cout << "_CS_" << std::endl;
       bcm2835_gpio_write(CS, HIGH);
     }
 
     inline void CE_HIGH()
     {
-      std::cout << "CE HIGH" << std::endl;
+      std::cout << "_CE_";
       bcm2835_gpio_write(CE, HIGH);
     }
 
     inline void CE_LOW()
     {
-      std::cout << "CE LOW" << std::endl;
+      std::cout << "_ce_";
       bcm2835_gpio_write(CE, LOW);
     }
 
     uint8_t SPI_SHIFT(uint8_t const data)
     {
+      std::cout << "SPI[" << std::showbase << std::internal << std::setfill('0') << std::hex << std::setw(4) << (int) data << std::dec << "] = ";
       uint8_t tmp = bcm2835_spi_transfer(data);
+      std::cout << std::showbase << std::internal << std::setfill('0') << std::hex << std::setw(4) << (int) tmp << std::dec << " ";
       return tmp;
     }
 
     void SPI_TRANSMIT_SYNC(uint8_t const * data, uint8_t const size)
     {
+      std::cout << "SPI[" << size << " bytes] ";
       bcm2835_spi_writenb(reinterpret_cast<char*>(const_cast<uint8_t*>(data)), size);
     }
 
     void SPI_TRANSFER_SYNC(uint8_t const * output, uint8_t * input, uint8_t const size)
     {
+      std::cout << "SPI[" << size << " bytes] = [] ";
       bcm2835_spi_transfernb(reinterpret_cast<char*>(const_cast<uint8_t*>(output)), reinterpret_cast<char*>(input), size);
     }
 
     void waitForInterrupt()
     {
-      // delay_ms(30);
+      delay_ms(30);
     }
 
     void clearPendingInterrupt()
