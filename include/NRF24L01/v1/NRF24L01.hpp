@@ -429,7 +429,7 @@ inline namespace v1 {
 
         uint8_t dynpd = readRegister(RF24_REGISTER_DYNPD);
         uint8_t const dynpd_bit = (1 << pipe);
-        if (dynpd & dynpd_bit == 0)
+        if ((dynpd & dynpd_bit) == 0)
         {
           writeRegister(RF24_REGISTER_DYNPD, dynpd | dynpd_bit);
         }
