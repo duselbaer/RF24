@@ -189,17 +189,39 @@ inline namespace v1 {
 
 
 
+    auto getReadingPipeAddress(uint8_t const number) -> uint64_t
+    {
+      uint64_t address;
+
+      if (number < 2)
+      {
+        readRegister(rxAddresses[number], 5, reinterpret_cast<uint8_t*>(&address));
+      }
+      else
+      {
+        readRegister(RF24_REGISTER_RX_ADDR_P1, 5, reinterpret_cast<uint8_t*>(&address));
+        *reinterpret_cast<uint8_t*>(&address) = readRegister(rxAddresses[number]);
+      }
+
+      return address;
+    }
+
+
+
     auto openReadingPipe(uint8_t const number, uint64_t const address) -> void
     {
 #if __BYTE_ORDER == __LITTLE_ENDIAN
       // Note that AVR & MSP430 8-bit uC's store this LSB first, and the NRF24L01(+)
       // expects it LSB first too, so we're good.
 
-      writeRegister(
-        static_cast<Rf24Register>(
-          static_cast<uint8_t>(RF24_REGISTER_RX_ADDR_P0) + number)
-          , reinterpret_cast<const uint8_t*>(&address), 5);
-      // writeRegister(RF24_REGISTER_TX_ADDR, reinterpret_cast<const uint8_t*>(&address), 5);
+      if (number < 2)
+      {
+        writeRegister(rxAddresses[number], reinterpret_cast<const uint8_t*>(&address), 5);
+      }
+      else
+      {
+        writeRegister(rxAddresses[number], reinterpret_cast<const uint8_t*>(&address), 1);
+      }
 #else
 #error Not yet implemented for BIG_ENDIAN
 #endif
@@ -501,12 +523,12 @@ inline namespace v1 {
       dumpRegister(output, RF24_REGISTER_OBSERVE_TX, "OBSERVE_TX");
       dumpRegister(output, RF24_REGISTER_CD, "CD");
 
-      dumpRegister(output, RF24_REGISTER_RX_ADDR_P0, "RX_ADDR_P0", 5);
-      dumpRegister(output, RF24_REGISTER_RX_ADDR_P1, "RF_ADDR_P1", 5);
-      dumpRegister(output, RF24_REGISTER_RX_ADDR_P2, "RX_ADDR_P2", 5);
-      dumpRegister(output, RF24_REGISTER_RX_ADDR_P3, "RX_ADDR_P3", 5);
-      dumpRegister(output, RF24_REGISTER_RX_ADDR_P4, "RX_ADDR_P4", 5);
-      dumpRegister(output, RF24_REGISTER_RX_ADDR_P5, "RX_ADDR_P5", 5);
+      dumpAddress(output, "RX_ADDR_P0", getReadingPipeAddress(0));
+      dumpAddress(output, "RX_ADDR_P1", getReadingPipeAddress(1));
+      dumpAddress(output, "RX_ADDR_P2", getReadingPipeAddress(2));
+      dumpAddress(output, "RX_ADDR_P3", getReadingPipeAddress(3));
+      dumpAddress(output, "RX_ADDR_P4", getReadingPipeAddress(4));
+      dumpAddress(output, "RX_ADDR_P5", getReadingPipeAddress(5));
 
       dumpRegister(output, RF24_REGISTER_TX_ADDR, "TX_ADDR", 5);
       dumpRegister(output, RF24_REGISTER_RX_PW_P0, "RX_PW_P0");
@@ -554,7 +576,15 @@ inline namespace v1 {
       , RF24_REGISTER_FEATURE = 0x1D
     } Rf24Register;
 
-
+    static constexpr Rf24Register rxAddresses[] =
+    {
+      RF24_REGISTER_RX_ADDR_P0
+        , RF24_REGISTER_RX_ADDR_P1
+        , RF24_REGISTER_RX_ADDR_P2
+        , RF24_REGISTER_RX_ADDR_P3
+        , RF24_REGISTER_RX_ADDR_P4
+        , RF24_REGISTER_RX_ADDR_P5
+    };
 
     typedef enum {
       RF24_COMMAND_R_REGISTER = 0x00
@@ -701,11 +731,29 @@ inline namespace v1 {
       output << name << " = ";
       for (auto i = 0; i < size; ++i)
       {
-        output << buf[i];
+        output << buf[i] << " ";
       }
       output << "\n";
     }
+
+
+
+    template<typename OUTPUT>
+    auto dumpAddress(OUTPUT& output, char const * name, uint64_t const address) -> void
+    {
+      output << name << " = ";
+      for (auto i = 0; i < 5; ++i)
+      {
+        output << reinterpret_cast<uint8_t const*>(&address)[i] << " ";
+      }
+      output << "\n";
+    }
+
 };
+
+template<typename COMM>
+constexpr typename NRF24L01<COMM>::Rf24Register NRF24L01<COMM>::rxAddresses[];
+
 }
 }
 
